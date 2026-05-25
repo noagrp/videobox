@@ -96,12 +96,15 @@
                 div.className = 'tv-box';
                 div.style.borderColor = v.color;
                 
+                // BUG FIX: Added allowfullscreen attribute to authorization parameters
                 div.innerHTML = `<button class="delete-btn" onclick="event.stopPropagation(); videos.splice(${index},1); saveState(); render();">×</button>
                                  <div class="drag-handle" draggable="true">:: Drag Here ::</div>
-                                 <iframe src="https://www.youtube.com/embed/${v.id}"></iframe>
+                                 <iframe src="https://www.youtube.com/embed/${v.id}" allowfullscreen></iframe>
                                  <div class="tv-title">${v.title}</div>`;
                 
-                div.addEventListener('click', () => {
+                // BUG FIX: Prevent container scale clicks from firing when accessing inner control tracks
+                div.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'IFRAME') return;
                     const isExpanded = div.classList.contains('expanded');
                     document.querySelectorAll('.tv-box').forEach(el => el.classList.remove('expanded'));
                     if (!isExpanded) {
@@ -127,7 +130,8 @@
             const name = prompt("Name your project:");
             if (!name) return;
             const dataString = JSON.stringify(videos);
-            const template = `<!DOCTYPE html><html><head><title>${name}</title><style>${document.querySelector('style').innerHTML}</style></head><body><h2 id="wall-title" style="position:static; text-align:center;">${name}</h2><div id="wall"></div><script>const videos = ${dataString}; const wall = document.getElementById('wall'); function render() { wall.innerHTML = ''; videos.forEach((v, i) => { const div = document.createElement('div'); div.className = 'tv-box'; div.style.borderColor = v.color; div.innerHTML = '<button class="delete-btn" onclick="event.stopPropagation(); videos.splice('+i+',1); render();">×</button><div class="drag-handle">:: Drag Here ::</div><iframe src="https://www.youtube.com/embed/'+v.id+'"></iframe><div class="tv-title">'+v.title+'</div>'; div.addEventListener('click', () => { const isExpanded = div.classList.contains('expanded'); document.querySelectorAll('.tv-box').forEach(el => el.classList.remove('expanded')); if (!isExpanded) div.classList.add('expanded'); }); wall.appendChild(div); }); } render(); <\/script></body></html>`;
+            // BUG FIX: Included the identical allowfullscreen configuration adjustments safely inside the export target templates
+            const template = `<!DOCTYPE html><html><head><title>${name}</title><style>${document.querySelector('style').innerHTML}</style></head><body><h2 id="wall-title" style="position:static; text-align:center;">${name}</h2><div id="wall"></div><script>const videos = ${dataString}; const wall = document.getElementById('wall'); function render() { wall.innerHTML = ''; videos.forEach((v, i) => { const div = document.createElement('div'); div.className = 'tv-box'; div.style.borderColor = v.color; div.innerHTML = '<button class="delete-btn" onclick="event.stopPropagation(); videos.splice('+i+',1); render();">×</button><div class="drag-handle">:: Drag Here ::</div><iframe src="https://www.youtube.com/embed/'+v.id+'" allowfullscreen></iframe><div class="tv-title">'+v.title+'</div>'; div.addEventListener('click', (e) => { if (e.target.tagName === "IFRAME") return; const isExpanded = div.classList.contains('expanded'); document.querySelectorAll('.tv-box').forEach(el => el.classList.remove('expanded')); if (!isExpanded) div.classList.add('expanded'); }); wall.appendChild(div); }); } render(); <\/script></body></html>`;
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([template], {type: 'text/html'}));
             a.download = `${name}.html`;
