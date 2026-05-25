@@ -6,30 +6,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
-        
         #menu-toggle { position: fixed; top: 20px; left: 20px; z-index: 1000; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 30px; backdrop-filter: blur(10px); transition: 0.3s; }
         #menu-toggle:hover { background: rgba(255,255,255,0.2); }
-        
         #wall-title { position: fixed; top: 20px; right: 20px; color: #555; font-weight: 300; margin: 0; pointer-events: none; }
-        
         #control-panel { display: none; padding: 80px 20px 40px 20px; background: rgba(17, 17, 17, 0.9); backdrop-filter: blur(15px); border-bottom: 1px solid #333; text-align: center; position: fixed; width: 100%; top: 0; z-index: 900; }
-        .controls { display: flex; gap: 10px; justify-content: center; }
-        input { padding: 12px 20px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; width: 300px; }
+        .controls { display: flex; gap: 10px; justify-content: center; align-items: center; }
+        input[type="text"] { padding: 12px 20px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; width: 200px; }
         button { padding: 10px 20px; border-radius: 8px; border: none; background: #007bff; color: white; cursor: pointer; transition: 0.3s; }
         button:hover { background: #0056b3; }
-
-        #wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; padding: 80px 20px 20px 20px; transition: all 0.5s ease; }
+        #wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; padding: 80px 20px 20px 20px; }
         .tv-box { position: relative; background: #111; border-radius: 16px; overflow: hidden; border: 2px solid transparent; transition: all 0.5s ease; display: flex; flex-direction: column; cursor: pointer; }
-        
         .tv-box.expanded { grid-column: span 2; grid-row: span 2; transform: scale(1.02); z-index: 500; }
-        .tv-box.expanded iframe { height: 500px; }
-
         .drag-handle { padding: 10px; cursor: grab; background: rgba(255,255,255,0.05); text-align: center; font-size: 12px; color: #888; }
-        .drag-handle:active { cursor: grabbing; }
-
-        iframe { width: 100%; height: 250px; border: none; transition: height 0.5s; }
+        iframe { width: 100%; height: 250px; border: none; }
         .tv-title { padding: 15px; font-size: 14px; color: #ccc; }
-        
         .delete-btn { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); border: 1px solid #555; color: white; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; z-index: 10; }
     </style>
 </head>
@@ -40,47 +30,50 @@
 
     <div id="control-panel">
         <div class="controls">
-            <input type="text" id="urlInput" placeholder="Paste YouTube URL or ID...">
-            <input type="text" id="titleInput" placeholder="Title...">
-            <button onclick="addVideo()">Add TV</button>
-            <button onclick="saveData()" style="background:#28a745">Save Data</button>
-            <button onclick="loadData()" style="background:#ffc107; color:black">Load Data</button>
+            <input type="text" id="urlInput" placeholder="URL/ID">
+            <input type="text" id="titleInput" placeholder="Title">
+            <button onclick="addVideo()">Add</button>
+            <button onclick="exportWall()" style="background:#28a745">Export</button>
+            <input type="file" id="fileInput" style="display:none" onchange="loadProject(event)">
+            <button onclick="document.getElementById('fileInput').click()" style="background:#6c757d">Load</button>
         </div>
     </div>
 
     <div id="wall"></div>
 
     <script>
-        let videos = JSON.parse(localStorage.getItem('myVideos')) || [];
-        let dragSrcEl = null;
-
+        let videos = JSON.parse(localStorage.getItem('myWall')) || [];
+        
         function togglePanel() {
             const p = document.getElementById('control-panel');
             p.style.display = p.style.display === 'block' ? 'none' : 'block';
         }
 
+        function saveLocal() { localStorage.setItem('myWall', JSON.stringify(videos)); }
+
         function addVideo() {
             const input = document.getElementById('urlInput').value;
             const title = document.getElementById('titleInput').value || "Untitled";
             const id = input.includes('v=') ? input.split('v=')[1].split('&')[0] : (input.includes('youtu.be/') ? input.split('/').pop() : input);
-            const color = `hsl(${Math.random() * 360}, 60%, 50%)`;
-            videos.push({ id, title, color });
+            videos.push({ id, title, color: `hsl(${Math.random() * 360}, 60%, 50%)` });
+            saveLocal();
             render();
         }
 
-        function saveData() {
-            localStorage.setItem('myVideos', JSON.stringify(videos));
-            alert("Wall saved successfully!");
-        }
-
-        function loadData() {
-            const saved = localStorage.getItem('myVideos');
-            if (saved) {
-                videos = JSON.parse(saved);
-                render();
-            } else {
-                alert("No saved data found.");
-            }
+        function loadProject(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                // Extracts the JSON string from the exported template script
+                const match = text.match(/const videos = (\[.*\]);/);
+                if (match) {
+                    videos = JSON.parse(match[1]);
+                    saveLocal();
+                    render();
+                }
+            };
+            reader.readAsText(file);
         }
 
         function render() {
@@ -90,31 +83,30 @@
                 const div = document.createElement('div');
                 div.className = 'tv-box';
                 div.style.borderColor = v.color;
-                
-                div.innerHTML = `<button class="delete-btn" onclick="event.stopPropagation(); videos.splice(${index},1); render();">×</button>
-                                 <div class="drag-handle" draggable="true">:: Drag Here ::</div>
-                                 <iframe src="https://www.youtube.com/embed/${v.id}" allowfullscreen></iframe>
+                div.innerHTML = `<button class="delete-btn" onclick="event.stopPropagation(); videos.splice(${index},1); saveLocal(); render();">×</button>
+                                 <div class="drag-handle">:: Drag Here ::</div>
+                                 <iframe src="https://www.youtube.com/embed/${v.id}"></iframe>
                                  <div class="tv-title">${v.title}</div>`;
-                
                 div.addEventListener('click', () => {
                     document.querySelectorAll('.tv-box').forEach(el => el.classList.remove('expanded'));
                     div.classList.add('expanded');
                 });
-
-                const handle = div.querySelector('.drag-handle');
-                handle.addEventListener('dragstart', (e) => { dragSrcEl = index; });
-                div.addEventListener('dragover', (e) => { e.preventDefault(); });
-                div.addEventListener('drop', (e) => {
-                    const temp = videos[dragSrcEl];
-                    videos[dragSrcEl] = videos[index];
-                    videos[index] = temp;
-                    render();
-                });
                 wall.appendChild(div);
             });
         }
-        
-        render(); // Initial load
+
+        function exportWall() {
+            const name = prompt("Name your project:", "MyWall");
+            if (!name) return;
+            const dataString = JSON.stringify(videos);
+            const template = `<!DOCTYPE html><html><head><title>${name}</title><style>${document.querySelector('style').innerHTML}</style></head><body><h2 style="text-align:center;">${name}</h2><div id="wall"></div><script>const videos = ${dataString}; const wall = document.getElementById('wall'); function render() { wall.innerHTML = ''; videos.forEach((v) => { const div = document.createElement('div'); div.className = 'tv-box'; div.style.borderColor = v.color; div.innerHTML = '<iframe src="https://www.youtube.com/embed/'+v.id+'"></iframe><div class="tv-title">'+v.title+'</div>'; wall.appendChild(div); }); } render(); <\/script></body></html>`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([template], {type: 'text/html'}));
+            a.download = `${name}.html`;
+            a.click();
+        }
+
+        render();
     </script>
 </body>
 </html>
