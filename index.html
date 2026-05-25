@@ -21,7 +21,6 @@
         #wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; padding: 80px 20px 20px 20px; transition: all 0.5s ease; }
         .tv-box { position: relative; background: #111; border-radius: 16px; overflow: hidden; border: 2px solid transparent; transition: all 0.5s ease; display: flex; flex-direction: column; cursor: pointer; }
         
-        /* Expansion state */
         .tv-box.expanded { grid-column: span 2; grid-row: span 2; transform: scale(1.02); z-index: 500; }
         .tv-box.expanded iframe { height: 500px; }
 
@@ -44,14 +43,15 @@
             <input type="text" id="urlInput" placeholder="Paste YouTube URL or ID...">
             <input type="text" id="titleInput" placeholder="Title...">
             <button onclick="addVideo()">Add TV</button>
-            <button onclick="exportWall()" style="background:#28a745">Export Project</button>
+            <button onclick="saveData()" style="background:#28a745">Save Data</button>
+            <button onclick="loadData()" style="background:#ffc107; color:black">Load Data</button>
         </div>
     </div>
 
     <div id="wall"></div>
 
     <script>
-        let videos = [];
+        let videos = JSON.parse(localStorage.getItem('myVideos')) || [];
         let dragSrcEl = null;
 
         function togglePanel() {
@@ -68,6 +68,21 @@
             render();
         }
 
+        function saveData() {
+            localStorage.setItem('myVideos', JSON.stringify(videos));
+            alert("Wall saved successfully!");
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('myVideos');
+            if (saved) {
+                videos = JSON.parse(saved);
+                render();
+            } else {
+                alert("No saved data found.");
+            }
+        }
+
         function render() {
             const wall = document.getElementById('wall');
             wall.innerHTML = '';
@@ -78,10 +93,9 @@
                 
                 div.innerHTML = `<button class="delete-btn" onclick="event.stopPropagation(); videos.splice(${index},1); render();">×</button>
                                  <div class="drag-handle" draggable="true">:: Drag Here ::</div>
-                                 <iframe src="https://www.youtube.com/embed/${v.id}"></iframe>
+                                 <iframe src="https://www.youtube.com/embed/${v.id}" allowfullscreen></iframe>
                                  <div class="tv-title">${v.title}</div>`;
                 
-                // Expansion logic
                 div.addEventListener('click', () => {
                     document.querySelectorAll('.tv-box').forEach(el => el.classList.remove('expanded'));
                     div.classList.add('expanded');
@@ -99,17 +113,8 @@
                 wall.appendChild(div);
             });
         }
-
-        function exportWall() {
-            const name = prompt("Name your project:");
-            if (!name) return;
-            const dataString = JSON.stringify(videos);
-            const template = `<!DOCTYPE html><html><head><title>${name}</title><style>${document.querySelector('style').innerHTML}</style></head><body><h2 id="wall-title" style="position:static; text-align:center;">${name}</h2><div id="wall"></div><script>const videos = ${dataString}; const wall = document.getElementById('wall'); function render() { wall.innerHTML = ''; videos.forEach((v, i) => { const div = document.createElement('div'); div.className = 'tv-box'; div.style.borderColor = v.color; div.innerHTML = '<button class="delete-btn" onclick="event.stopPropagation(); videos.splice('+i+',1); render();">×</button><div class="drag-handle">:: Drag Here ::</div><iframe src="https://www.youtube.com/embed/'+v.id+'"></iframe><div class="tv-title">'+v.title+'</div>'; div.addEventListener('click', () => { document.querySelectorAll('.tv-box').forEach(el => el.classList.remove('expanded')); div.classList.add('expanded'); }); wall.appendChild(div); }); } render(); <\/script></body></html>`;
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([template], {type: 'text/html'}));
-            a.download = `${name}.html`;
-            a.click();
-        }
+        
+        render(); // Initial load
     </script>
 </body>
 </html>
