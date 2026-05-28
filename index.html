@@ -41,10 +41,10 @@
         <div class="controls">
             <input type="text" id="urlInput" placeholder="Paste YouTube URL or ID...">
             <input type="text" id="titleInput" placeholder="Title...">
-            <button onclick="addVideo()">Add TV</button>
-            <button onclick="exportWall()" style="background:#28a745">Export Project</button>
+            <button onclick="addVideo()">Add</button>
+            <button onclick="exportWall()" style="background:#28a745">Export</button>
             <input type="file" id="fileInput" style="display:none" onchange="loadProject(event)">
-            <button onclick="document.getElementById('fileInput').click()" style="background:#6c757d">Load File</button>
+            <button onclick="document.getElementById('fileInput').click()" style="background:#6c757d">Import</button>
         </div>
     </div>
 
@@ -127,7 +127,7 @@
         }
 
         function exportWall() {
-            const name = prompt("Name your project:");
+            const name = prompt("Name your file:");
             if (!name) return;
             const dataString = JSON.stringify(videos);
             // BUG FIX: Included the identical allowfullscreen configuration adjustments safely inside the export target templates
